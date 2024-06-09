@@ -1,17 +1,34 @@
-# Используем официальный образ Python
+# Используем официальный Python образ в качестве базового
 FROM python:3.10
 
-# Устанавливаем рабочую директорию в контейнере
-WORKDIR /code
+# Устанавливаем системные зависимости
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    curl \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Копируем файл requirements.txt в рабочую директорию
-COPY requirements.txt /code/
+# Устанавливаем Centrifugo
+RUN curl -L https://github.com/centrifugal/centrifugo/releases/download/v3.0.0/centrifugo_3.0.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin
 
-# Устанавливаем зависимости
-RUN pip install --no-cache-dir -r requirements.txt
+# Устанавливаем и обновляем pip
+RUN pip install --upgrade pip
 
-# Копируем все содержимое проекта в рабочую директорию
-COPY . /code/
+# Устанавливаем зависимости для проекта
+COPY requirements.txt /app/requirements.txt
+RUN pip install -r /app/requirements.txt
 
-# Указываем команду для запуска сервера Django
+# Создаем рабочую директорию
+WORKDIR /app
+
+# Копируем файлы проекта в контейнер
+COPY . /app
+
+# Открываем порты
+EXPOSE 8000 8010
+
+# Команда для запуска приложения
+#CMD ["gunicorn", "-c", "configs/gunicorn.conf.py", "msgr.wsgi"]
+# RUN centrifugo --config=configs/centrifugo.json 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
