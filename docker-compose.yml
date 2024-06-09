@@ -11,7 +11,7 @@ services:
 
 
   centrifugo:
-    image: centrifugo/centrifugo:v3.0.0
+    image: centrifugo/centrifugo:latest
     command: centrifugo -c /centrifugo/config.json
     volumes:
       - ./configs/centrifugo.json:/centrifugo/config.json
