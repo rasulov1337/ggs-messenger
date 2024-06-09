@@ -1,15 +1,15 @@
 {
-    "token_hmac_secret_key": "e0ea51dc-6722-4fc9-a853-7a2cca96c2a4",
-    "admin_password": "ce2ea7ee-fbbe-46c4-8757-c35223b9fb26",
-    "admin_secret": "1c6f6cf3-727d-4098-b782-8853904a402a",
-    "api_key": "ea8fb4b0-ef57-4caf-b7c1-3cd4c05bff7f",
-    "port": 8010,
-    "admin": true,
-    "allowed_origins": [
-      "http://localhost",
-      "http://localhost:8000",
-      "http:127.0.0.1",
-      "http:127.0.0.1:8000"
-    ],
-    "allow_subscribe_for_client": true
+  "token_hmac_secret_key": "e0ea51dc-6722-4fc9-a853-7a2cca96c2a4",
+  "admin_password": "ce2ea7ee-fbbe-46c4-8757-c35223b9fb26",
+  "admin_secret": "1c6f6cf3-727d-4098-b782-8853904a402a",
+  "api_key": "ea8fb4b0-ef57-4caf-b7c1-3cd4c05bff7f",
+  "port": 8010,
+  "admin": true,
+  "allowed_origins": [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000"
+  ],
+  "allow_subscribe_for_client": true
 }
