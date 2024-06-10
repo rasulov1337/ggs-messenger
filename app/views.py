@@ -6,6 +6,7 @@ from django.views.decorators.http import (
 )
 
 from app.forms import LoginForm, RegisterForm
+from app.models import Chat, ChatManager
 
 
 def index(request):
@@ -50,3 +51,26 @@ def logout(request):
         return JsonResponse({'status': 'ok'}, status=200)
     except Exception as e:
         return JsonResponse({'error': 'Internal error'}, status=500)
+
+@require_GET
+def get_chats(request):
+    chats = Chat.objects.get_chats_of_user(request.user.id)
+    data = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
+    return JsonResponse(data)
+
+@require_GET
+def search(request):
+    query = request.GET.get('q','')
+    if not query:
+        return JsonResponse({'result': []})
+    chats = Chat.objects.get_chats_of_user(request.user.id).filter(name__icontains=query)
+    result = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
+    return JsonResponse(result)
+
+#@require_POST
+#def create_chat(request, members):
+
+
+
+
+

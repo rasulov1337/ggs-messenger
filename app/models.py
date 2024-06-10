@@ -16,16 +16,27 @@ class Profile(models.Model):
         return self.name
 
 
+class ChatManager(models.Manager):
+    def get_chats_of_user(self, user_id):
+        profile = Profile.objects.get(user_id=user_id)
+        chats = Chat.objects.filter(chatparticipant__profile=profile).order_by('-created_at')
+        return chats
+
+
 class Chat(models.Model):
     name = models.CharField(max_length=70)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+    objects = ChatManager()
+
 
     def __str__(self):
         return self.name
 
 
 class ChatParticipant(models.Model):
-    chat = models.OneToOneField(Chat, on_delete=models.CASCADE)
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     profile = models.ForeignKey(Profile, on_delete=models.PROTECT)
     has_admin_rights = models.BooleanField(default=False)
 
