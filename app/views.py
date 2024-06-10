@@ -59,7 +59,7 @@ def get_chats(request):
     return JsonResponse(data)
 
 @require_GET
-def search(request):
+def search_chats(request):
     query = request.GET.get('q','')
     if not query:
         return JsonResponse({'result': []})
