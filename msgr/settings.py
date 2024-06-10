@@ -68,6 +68,12 @@ TEMPLATES = [
     },
 ]
 
+# TODO: Мб как-то автоматически считывать config.json?
+CENTRIFUGO_SECRET = "e0ea51dc-6722-4fc9-a853-7a2cca96c2a4"
+CENTRIFUGO_WS_URL = "ws://localhost:8010/connection/websocket"
+CENTRIFUGO_API_URL = 'http://centrifugo:8010/api'
+CENTRIFUGO_API_KEY = 'ea8fb4b0-ef57-4caf-b7c1-3cd4c05bff7f'
+
 WSGI_APPLICATION = 'msgr.wsgi.application'
 
 

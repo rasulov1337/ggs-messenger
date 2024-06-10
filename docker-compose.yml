@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   web:
     build: .
@@ -8,16 +6,25 @@ services:
       - .:/app
     ports:
       - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ggmsgr
+    depends_on:
+      - centrifugo
 
 
   centrifugo:
-    image: centrifugo/centrifugo:v3.0.0
+    image: centrifugo/centrifugo:latest
     command: centrifugo -c /centrifugo/config.json
     volumes:
       - ./configs/centrifugo.json:/centrifugo/config.json
     ports:
       - "8010:8010"
+    networks:
+      - ggmsgr
 
 
-volumes:
-  postgres_data:
+networks:
+  ggmsgr:
+    driver: bridge
