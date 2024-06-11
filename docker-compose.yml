@@ -1,22 +1,30 @@
 services:
-#  db:
-#    image: postgres:13
-#    environment:
-#      POSTGRES_DB: myproject
-#      POSTGRES_USER: myprojectuser
-#      POSTGRES_PASSWORD: myprojectpassword
-#    volumes:
-#      - postgres_data:/var/lib/postgresql/data
-
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/code
+      - .:/app
     ports:
       - "8000:8000"
-#    depends_on:
-#      - db
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - ggmsgr
+    depends_on:
+      - centrifugo
 
-volumes:
-  postgres_data:
+
+  centrifugo:
+    image: centrifugo/centrifugo:latest
+    command: centrifugo -c /centrifugo/config.json
+    volumes:
+      - ./configs/centrifugo.json:/centrifugo/config.json
+    ports:
+      - "8010:8010"
+    networks:
+      - ggmsgr
+
+
+networks:
+  ggmsgr:
+    driver: bridge
