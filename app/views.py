@@ -7,6 +7,7 @@ from cent import Client, PublishRequest  # Centrifugo
 from django.contrib import auth
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views import View
 from django.views.decorators.http import (
     require_GET, require_http_methods, require_POST,
 )
@@ -176,3 +177,35 @@ def delete_message(request):
         return JsonResponse({'error': 'Bad Request'}, status=400)
 
     return JsonResponse({'status': 'ok'}, status=200)
+
+
+class ProfilesView(View):
+    model = Profile
+    pk_url_kwarg = 'profile_id'
+
+    def get(self, request, profile_id):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        # TODO: Достать информацию о пользователе из БД и вернуть ее в виде JSON
+
+    def post(self, request, profile_id):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        if profile_id != 0:
+            return JsonResponse({'error': 'Bad request'}, status=400)
+
+        # TODO: Достать новую информацию о пользователе и обновить ее в БД
+        return JsonResponse({'status': 'ok'}, status=200)
+
+    def delete(self, request, profile_id):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        if profile_id != 0:
+            return JsonResponse({'error': 'Bad request'}, status=400)
+
+        request.user.profile.delete()
+        request.user.delete()
+        return JsonResponse({'status': 'ok'}, status=200)
