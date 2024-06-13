@@ -17,10 +17,15 @@ class Profile(models.Model):
 
 
 class ChatManager(models.Manager):
-    def get_chats_of_user(self, user_id):
+    def get_chats_of_user(self, user_id, query):
         profile = Profile.objects.get(user_id=user_id)
-        chats = Chat.objects.filter(chatparticipant__profile=profile).order_by('-created_at')
-        return chats
+        return Chat.objects.filter(chatparticipant__profile=profile).order_by('-created_at')
+
+    def find_chats_of_user(self, user_id, query):
+        chats = self.get_chats_of_user(user_id, query).filter(text__icontains=query)
+        return {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
+
+
 
 
 class Chat(models.Model):
@@ -42,11 +47,24 @@ class ChatParticipant(models.Model):
         return self.profile.user.username
 
 
+class MessageManager(models.Manager):
+    def get_messages_of_chat(self, chat_id):
+        return Message.objects.filter(chat__id=chat_id).order_by('-sent_at')
+
+    def find_messages_of_chat(self, chat_id, query):
+        messages = self.get_messages_of_chat(chat_id).filter(text__icontains=query)[:50]
+        result = {'messages': [{'id': message.id, 'text': message.text} for message in messages]}
+        return result
+
+
+
 class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
     profile = models.ForeignKey(Profile, on_delete=models.PROTECT)
     text = models.TextField(max_length=500)
     sent_at = models.DateTimeField(auto_now_add=True)
+
+    objects = MessageManager()
 
     def __str__(self):
         return self.text

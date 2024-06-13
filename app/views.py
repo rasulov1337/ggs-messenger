@@ -6,7 +6,8 @@ import jwt  # Token generation
 from cent import Client, PublishRequest  # Centrifugo
 from django.contrib import auth
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
+from django.views import View
 from django.views.decorators.http import (
     require_GET, require_http_methods, require_POST,
 )
@@ -75,23 +76,75 @@ def logout(request):
         return JsonResponse({'error': 'Internal error'}, status=500)
 
 
-@require_GET
-def get_chats(request):
-    chats = Chat.objects.get_chats_of_user(request.user.id)
-    data = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
-    return JsonResponse(data)
+class ChatView(View):
+    model = Chat
 
-@require_GET
-def search_chats(request):
-    query = request.GET.get('q','')
-    if not query:
-        return JsonResponse({'result': []})
-    chats = Chat.objects.get_chats_of_user(request.user.id).filter(name__icontains=query)
-    result = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
-    return JsonResponse(result)
+    def dispatch(self, request, *args, **kwargs):
+        ...
 
-#@require_POST
-#def create_chat(request, members):
+    def get_chat_list(self, request):
+        chats = Chat.objects.get_chats_of_user(request.user.id)
+        data = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
+        return JsonResponse(data)
+
+    def search_chats(self, request):
+        query = request.GET.get('q', None)
+        if query is None:
+            return JsonResponse({'result': []})
+        return JsonResponse(Chat.objects.find_chats_of_user(request.user.id, query))
+
+    def search_messages(self, request, chat_id):
+        query = request.GET.get('q', None)
+        if query is None:
+            return JsonResponse({'result': []})
+
+        return JsonResponse(Message.objects.find_messages_of_chat(chat_id, query))
+
+    def create_chat(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            chat_name = data.get('name')
+            user_ids = data.get('user_ids', [])
+
+            if not chat_name or not user_ids:
+                return JsonResponse({'error': 'Missing chat name or user ids.'}, status=400)
+
+            # Создаем новый чат
+            chat = Chat.objects.create(name=chat_name)
+
+            # Добавляем участников в чат
+            for user_id in user_ids:
+                try:
+                    profile = Profile.objects.get(user_id=user_id)
+                    ChatParticipant.objects.create(chat=chat, profile=profile)
+                except Profile.DoesNotExist:
+                    return JsonResponse({'error': f'Profile with user_id {user_id} does not exist.'}, status=400)
+
+            return JsonResponse({'id': chat.id, 'name': chat.name}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+
+    def delete_chat(self, request, chat_id):
+        # Получаем профиль пользователя
+        profile = get_object_or_404(Profile, user=request.user)
+
+        # Проверяем, что пользователь является участником чата с правами администратора
+        chat = get_object_or_404(Chat, id=chat_id)
+        participant = ChatParticipant.objects.filter(chat=chat, profile=profile, has_admin_rights=True).first()
+
+        if not participant:
+            return JsonResponse({'error': 'You do not have permission to delete this chat.'}, status=403)
+
+        # Удаляем чат
+        chat.delete()
+        return JsonResponse({'status': 'Chat deleted successfully'})
+
+    def get_chat_messages(self, request, chat_id):
+        messages = Message.objects.get_messages_of_chat(chat_id)
+        data = {'chats': [{'id': message.id, 'text': message.text} for message in messages]}
+        return JsonResponse(data)
+
 
 @require_POST
 def send_message(request):
@@ -119,8 +172,8 @@ def send_message(request):
 
         # Save the message to the database
         msg = Message.objects.create(chat=Chat.objects.get(pk=int(body['chatId'])),
-                                    profile=request.user.profile,
-                                    text=body['text'])
+                                     profile=request.user.profile,
+                                     text=body['text'])
         msg.save()
     except json.JSONDecodeError or KeyError:
         return JsonResponse({'error': 'Bad Request'}, status=400)
@@ -193,4 +246,3 @@ def delete_message(request):
         return JsonResponse({'error': 'Bad Request'}, status=400)
 
     return JsonResponse({'status': 'ok'}, status=200)
-
