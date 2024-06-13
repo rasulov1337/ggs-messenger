@@ -26,8 +26,6 @@ class ChatManager(models.Manager):
         return {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
 
 
-
-
 class Chat(models.Model):
     name = models.CharField(max_length=70)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -55,7 +53,6 @@ class MessageManager(models.Manager):
         messages = self.get_messages_of_chat(chat_id).filter(text__icontains=query)[:50]
         result = {'messages': [{'id': message.id, 'text': message.text} for message in messages]}
         return result
-
 
 
 class Message(models.Model):
