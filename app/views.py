@@ -76,118 +76,206 @@ def logout(request):
         return JsonResponse({'error': 'Internal error'}, status=500)
 
 
-@require_POST
-def send_message(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'User is not authenticated'}, status=400)
+class ChatListView(View):
+    model = Chat
 
-    api_url = settings.CENTRIFUGO_API_URL
-    api_key = settings.CENTRIFUGO_API_KEY
-
-    try:
-        body = json.loads(request.body)
-
-        client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-        ws_channel_name = 'chat_' + str(body['chatId'])
-        publist_request = PublishRequest(
-            channel=ws_channel_name,
-            data={
-                'type': 'send_message',
-                'data': {
-                    'text': body['text'],
-                    'senderId': request.user.id,
-                }
-            })
-        client.publish(publist_request)
-
-        # Save the message to the database
-        msg = Message.objects.create(chat=Chat.objects.get(pk=int(body['chatId'])),
-                                    profile=request.user.profile,
-                                    text=body['text'])
-        msg.save()
-    except json.JSONDecodeError or KeyError:
-        return JsonResponse({'error': 'Bad Request'}, status=400)
-
-    return JsonResponse({'status': 'ok'}, status=200)
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'GET':
+            if request.GET.get('search', None) is not None:
+                return self.search_chats(request)
+            return self.get_chat_list(request)
+        elif request.method == 'POST':
+            return self.create_chat(request)
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-@require_http_methods(['PATCH'])
-def edit_message(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'User is not authenticated'}, status=400)
+    def get_chat_list(self, request):
+        chats = Chat.objects.get_chats_of_user(request.user.id)
+        data = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
+        return JsonResponse(data)
 
-    api_url = settings.CENTRIFUGO_API_URL
-    api_key = settings.CENTRIFUGO_API_KEY
+    def search_chats(self, request):
+        query = request.GET.get('q', None)
+        if query is None:
+            return JsonResponse({'result': []})
+        return JsonResponse(Chat.objects.search_chats_of_user(request.user.id, query))
 
-    try:
-        body = json.loads(request.body)
+    def create_chat(self, request):
+        try:
+            data = json.loads(request.body)
+            chat_name = data.get('name')
+            user_ids = data.get('user_ids', [])
 
-        client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-        ws_channel_name = 'chat_' + str(body['chatId'])
-        request = PublishRequest(
-            channel=ws_channel_name,
-            data={
-                'type': 'edit_message',
-                'data': {
-                    'messageId': body['messageId'],
-                    'text': body['text'],
-                }
-            })
-        client.publish(request)
+            if not chat_name or not user_ids:
+                return JsonResponse({'error': 'Missing chat name or user ids.'}, status=400)
 
-        # Update the message
-        Message.objects.filter(pk=int(body['messageId'])).update(text=body['text'])
-    except json.JSONDecodeError or KeyError:
-        return JsonResponse({'error': 'Bad Request'}, status=400)
+            chat = Chat.objects.create(name=chat_name)
 
-    return JsonResponse({'status': 'ok'}, status=200)
+            for user_id in user_ids:
+                try:
+                    profile = Profile.objects.get(user_id=user_id)
+                    ChatParticipant.objects.create(chat=chat, profile=profile)
+                except Profile.DoesNotExist:
+                    return JsonResponse({'error': f'Profile with user_id {user_id} does not exist.'}, status=400)
+
+            return JsonResponse({'id': chat.id, 'name': chat.name}, status=201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
 
 
-@require_http_methods(['DELETE'])
-def delete_message(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'error': 'User is not authenticated'}, status=400)
+class ChatDetailView(View):
+    model = Chat
 
-    try:
-        body = json.loads(request.body)
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'GET':
+            return self.get_chat_messages(request, *args)
+        elif request.method == 'DELETE':
+            return self.delete_chat(request, *args)
+        return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
-        # Delete the message from the database
-        msg = Message.objects.filter(pk=int(body['messageId']))
-        if not msg.exists():
-            return JsonResponse({'error': 'Message does not exist'}, status=400)
+    def get_chat_messages(self, request, chat_id):
+        messages = Message.objects.get_messages_of_chat(chat_id)
+        data = {'chats': [{'id': message.id, 'text': message.text} for message in messages]}
+        return JsonResponse(data)
 
-        msg.delete()
+    def delete_chat(self, request, chat_id):
+        profile = get_object_or_404(Profile, user=request.user)
 
-        # Send a message to Centrifugo to delete the message from the chat
+        chat = get_object_or_404(Chat, id=chat_id)
+        participant = ChatParticipant.objects.filter(chat=chat, profile=profile, has_admin_rights=True).first()
+
+        if not participant:
+            return JsonResponse({'error': 'You do not have permission to delete this chat.'}, status=403)
+
+        chat.delete()
+        return JsonResponse({'status': 'Chat deleted successfully'})
+
+
+class MessageListView(View):
+    model = Message
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'GET':
+            return self.search_messages_in_chat(request, *args)
+        elif request.method == 'POST':
+            return self.send_message(request)
+        return JsonResponse({'error': 'Method not allowed.'}, status=405)
+
+
+    def search_messages_in_chat(self, request, chat_id):
+        query = request.GET.get('q', None)
+        if query is None:
+            return JsonResponse({'result': []})
+
+        return JsonResponse(Message.objects.search_messages_in_chat(chat_id, query))
+
+    def send_message(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
         api_url = settings.CENTRIFUGO_API_URL
         api_key = settings.CENTRIFUGO_API_KEY
 
-        client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-        ws_channel_name = 'chat_' + str(body['chatId'])
-        request = PublishRequest(
-            channel=ws_channel_name,
-            data={
-                'type': 'delete_message',
-                'data': {
-                    'messageId': body['messageId']
-                }
-            })
-        client.publish(request)
-    except json.JSONDecodeError or KeyError:
-        return JsonResponse({'error': 'Bad Request'}, status=400)
+        try:
+            body = json.loads(request.body)
+
+            client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
+            ws_channel_name = 'chat_' + str(body['chatId'])
+            publist_request = PublishRequest(
+                channel=ws_channel_name,
+                data={
+                    'type': 'send_message',
+                    'data': {
+                        'text': body['text'],
+                        'senderId': request.user.id,
+                    }
+                })
+            client.publish(publist_request)
+
+            # Save the message to the database
+            msg = Message.objects.create(chat=Chat.objects.get(pk=int(body['chatId'])),
+                                        profile=request.user.profile,
+                                        text=body['text'])
+            msg.save()
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
+
+        return JsonResponse({'status': 'ok'}, status=200)
+
+
+class MessageDetailView(View):
+    model = Message
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.method == 'DELETE':
+            return self.delete_message(request, *args)
+        elif request.method == 'PATCH':
+            return self.edit_message(request, *args)
+        return JsonResponse({'error': 'Method not allowed.'}, status=405)
+
+    def edit_message(self, request, message_id: int) -> JsonResponse:
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        api_url = settings.CENTRIFUGO_API_URL
+        api_key = settings.CENTRIFUGO_API_KEY
+
+        try:
+            body = json.loads(request.body)
+
+            client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
+            ws_channel_name = 'chat_' + str(body['chatId'])
+            request = PublishRequest(
+                channel=ws_channel_name,
+                data={
+                    'type': 'edit_message',
+                    'data': {
+                        'messageId': message_id,
+                        'text': body['text'],
+                    }
+                })
+            client.publish(request)
+
+            # Update the message
+            Message.objects.filter(pk=message_id).update(text=body['text'])
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
+        return JsonResponse({'status': 'ok'}, status=200)
+
+    def delete_message(self, request, message_id: int) -> JsonResponse:
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        try:
+            body = json.loads(request.body)
+
+            # Delete the message from the database
+            msg = Message.objects.filter(pk=message_id)
+            if not msg.exists():
+                return JsonResponse({'error': 'Message does not exist'}, status=400)
+
+            msg.delete()
+
+            # Send a message to Centrifugo to delete the message from the chat
+            api_url = settings.CENTRIFUGO_API_URL
+            api_key = settings.CENTRIFUGO_API_KEY
+
+            client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
+            ws_channel_name = 'chat_' + str(body['chatId'])
+            request = PublishRequest(
+                channel=ws_channel_name,
+                data={
+                    'type': 'delete_message',
+                    'data': {
+                        'messageId': message_id
+                    }
+                })
+            client.publish(request)
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
 
     return JsonResponse({'status': 'ok'}, status=200)
-
-
-def get_profile_info(request, profile_id):
-    profile = Profile.objects.get(id=profile_id)
-    if not profile:
-        return JsonResponse({'error': 'Profile does not exist'}, status=400)
-    return JsonResponse({'username': profile.user.username,
-                         'name': profile.name,
-                         'bio': profile.bio,
-                         'last_active': profile.last_active
-                         }, status=200)
 
 
 class SelfProfileView(View):
