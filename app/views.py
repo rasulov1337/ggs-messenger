@@ -76,7 +76,7 @@ def logout(request):
         return JsonResponse({'error': 'Internal error'}, status=500)
 
 
-class ChatView(View):
+class ChatsViews(View):
     model = Chat
 
     def dispatch(self, request, *args, **kwargs):
@@ -92,13 +92,6 @@ class ChatView(View):
         if query is None:
             return JsonResponse({'result': []})
         return JsonResponse(Chat.objects.find_chats_of_user(request.user.id, query))
-
-    def search_messages(self, request, chat_id):
-        query = request.GET.get('q', None)
-        if query is None:
-            return JsonResponse({'result': []})
-
-        return JsonResponse(Message.objects.find_messages_of_chat(chat_id, query))
 
     def create_chat(self, request, *args, **kwargs):
         try:
@@ -125,6 +118,22 @@ class ChatView(View):
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON.'}, status=400)
 
+
+class ChatsDetailsView(View):
+    model = Chat
+
+    def get_chat_messages(self, request, chat_id):
+        messages = Message.objects.get_messages_of_chat(chat_id)
+        data = {'chats': [{'id': message.id, 'text': message.text} for message in messages]}
+        return JsonResponse(data)
+
+    def search_messages(self, request, chat_id):
+        query = request.GET.get('q', None)
+        if query is None:
+            return JsonResponse({'result': []})
+
+        return JsonResponse(Message.objects.find_messages_of_chat(chat_id, query))
+
     def delete_chat(self, request, chat_id):
         # Получаем профиль пользователя
         profile = get_object_or_404(Profile, user=request.user)
@@ -139,11 +148,6 @@ class ChatView(View):
         # Удаляем чат
         chat.delete()
         return JsonResponse({'status': 'Chat deleted successfully'})
-
-    def get_chat_messages(self, request, chat_id):
-        messages = Message.objects.get_messages_of_chat(chat_id)
-        data = {'chats': [{'id': message.id, 'text': message.text} for message in messages]}
-        return JsonResponse(data)
 
 
 @require_POST
