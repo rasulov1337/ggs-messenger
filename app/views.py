@@ -6,7 +6,8 @@ import jwt  # Token generation
 from cent import Client, PublishRequest  # Centrifugo
 from django.contrib import auth
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
+from django.views import View
 from django.views.decorators.http import (
     require_GET, require_http_methods, require_POST,
 )
@@ -176,3 +177,57 @@ def delete_message(request):
         return JsonResponse({'error': 'Bad Request'}, status=400)
 
     return JsonResponse({'status': 'ok'}, status=200)
+
+
+def get_profile_info(request, profile_id):
+    profile = Profile.objects.get(id=profile_id)
+    if not profile:
+        return JsonResponse({'error': 'Profile does not exist'}, status=400)
+    return JsonResponse({'username': profile.user.username,
+                         'name': profile.name,
+                         'bio': profile.bio,
+                         'last_active': profile.last_active
+                         }, status=200)
+
+
+class SelfProfileView(View):
+    model = Profile
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        profile = request.user.profile
+        return JsonResponse({'username': profile.user.username,
+                             'name': profile.name,
+                             'bio': profile.bio,
+                             'last_active': profile.last_active
+                             }, status=200)
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
+
+        profile = request.user.profile
+        if 'username' in body:
+            profile.user.username = body['username']
+        if 'name' in body:
+            profile.name = body['name']
+        if 'bio' in body:
+            profile.bio = body['bio']
+        profile.save()
+
+        return JsonResponse({'status': 'ok'}, status=200)
+
+    def delete(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        request.user.profile.delete()
+        request.user.delete()
+        return JsonResponse({'status': 'ok'}, status=200)
