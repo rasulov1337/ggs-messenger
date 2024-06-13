@@ -12,5 +12,10 @@ urlpatterns = [
     path('chats/<int:chat_id>', views.ChatDetailView.as_view(), name='chat-detail'),
     path('chats/<int:chat_id>/messages', views.MessageListView.as_view(), name='messages-list'),
     path('chats/<int:chat_id>/messages/<int:message_id>', views.MessageDetailView.as_view(), name='message-detail'),
-    path('', views.index, name='index'),
+
+    path('profiles/self', views.SelfProfileView.as_view(), name='self-profile'),
+    path('profiles/<int:profile_id>', views.get_profile_info, name='get-profile-info'),
+  
+    path('', views.index, name="index"),
+
 ]

@@ -109,10 +109,8 @@ class ChatListView(View):
             if not chat_name or not user_ids:
                 return JsonResponse({'error': 'Missing chat name or user ids.'}, status=400)
 
-            # Создаем новый чат
             chat = Chat.objects.create(name=chat_name)
 
-            # Добавляем участников в чат
             for user_id in user_ids:
                 try:
                     profile = Profile.objects.get(user_id=user_id)
@@ -142,17 +140,14 @@ class ChatDetailView(View):
         return JsonResponse(data)
 
     def delete_chat(self, request, chat_id):
-        # Получаем профиль пользователя
         profile = get_object_or_404(Profile, user=request.user)
 
-        # Проверяем, что пользователь является участником чата с правами администратора
         chat = get_object_or_404(Chat, id=chat_id)
         participant = ChatParticipant.objects.filter(chat=chat, profile=profile, has_admin_rights=True).first()
 
         if not participant:
             return JsonResponse({'error': 'You do not have permission to delete this chat.'}, status=403)
 
-        # Удаляем чат
         chat.delete()
         return JsonResponse({'status': 'Chat deleted successfully'})
 
@@ -280,4 +275,47 @@ class MessageDetailView(View):
         except json.JSONDecodeError or KeyError:
             return JsonResponse({'error': 'Bad Request'}, status=400)
 
+    return JsonResponse({'status': 'ok'}, status=200)
+
+
+class SelfProfileView(View):
+    model = Profile
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        profile = request.user.profile
+        return JsonResponse({'username': profile.user.username,
+                             'name': profile.name,
+                             'bio': profile.bio,
+                             'last_active': profile.last_active
+                             }, status=200)
+
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
+
+        profile = request.user.profile
+        if 'username' in body:
+            profile.user.username = body['username']
+        if 'name' in body:
+            profile.name = body['name']
+        if 'bio' in body:
+            profile.bio = body['bio']
+        profile.save()
+
+        return JsonResponse({'status': 'ok'}, status=200)
+
+    def delete(self, request):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
+        request.user.profile.delete()
+        request.user.delete()
         return JsonResponse({'status': 'ok'}, status=200)
