@@ -1,7 +1,7 @@
 "use strict"
 
 
-const CHAT_API_URL = 'http://localhost:8000/messages/'
+const CHAT_API_URL = 'http://localhost:8000/chats/'
 
 async function init() {
     const response = await fetch(CHAT_API_URL + 'get-cent-token')
@@ -31,13 +31,12 @@ async function init() {
 
 
 function sendMessage(chatId, text) {
-    const requst = new Request(CHAT_API_URL + 'send', {
+    const requst = new Request(CHAT_API_URL + `${chatId}/messages/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            chatId: chatId,
             text: text,
         })
     })
@@ -47,7 +46,7 @@ function sendMessage(chatId, text) {
 
 
 function editMessage(chatId, messageId, text) {
-    const requst = new Request(CHAT_API_URL + 'edit', {
+    const requst = new Request(CHAT_API_URL + `${chatId}/messages/${messageId}`, {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json'
@@ -63,7 +62,7 @@ function editMessage(chatId, messageId, text) {
 }
 
 function deleteMessage(chatId, messageId) {
-    const requst = new Request(CHAT_API_URL + 'delete', {
+    const requst = new Request(CHAT_API_URL + `${chatId}/messages/${messageId}`, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json'
