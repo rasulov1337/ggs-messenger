@@ -93,7 +93,7 @@ class ChatsViews(View):
             return JsonResponse({'result': []})
         return JsonResponse(Chat.objects.find_chats_of_user(request.user.id, query))
 
-    def create_chat(self, request, *args, **kwargs):
+    def create_chat(self, request):
         try:
             data = json.loads(request.body)
             chat_name = data.get('name')
@@ -119,7 +119,7 @@ class ChatsViews(View):
             return JsonResponse({'error': 'Invalid JSON.'}, status=400)
 
 
-class ChatsDetailsView(View):
+class ChatsDetailView(View):
     model = Chat
 
     def get_chat_messages(self, request, chat_id):
