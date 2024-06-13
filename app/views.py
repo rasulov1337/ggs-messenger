@@ -187,7 +187,16 @@ class ProfilesView(View):
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
-        # TODO: Достать информацию о пользователе из БД и вернуть ее в виде JSON
+        profile = Profile.objects.filter(pk=profile_id)
+        if not profile.exists():
+            return JsonResponse({'error': 'Profile does not exist'}, status=400)
+
+        profile = profile.first()
+        return JsonResponse({'username': profile.user.username,
+                             'name': profile.name,
+                             'bio': profile.bio,
+                             'last_active': profile.last_active
+                            }, status=200)
 
     def post(self, request, profile_id):
         if not request.user.is_authenticated:
@@ -196,7 +205,20 @@ class ProfilesView(View):
         if profile_id != 0:
             return JsonResponse({'error': 'Bad request'}, status=400)
 
-        # TODO: Достать новую информацию о пользователе и обновить ее в БД
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
+
+        profile = request.user.profile
+        if 'username' in body:
+            profile.user.username = body['username']
+        if 'name' in body:
+            profile.name = body['name']
+        if 'bio' in body:
+            profile.bio = body['bio']
+        profile.save()
+
         return JsonResponse({'status': 'ok'}, status=200)
 
     def delete(self, request, profile_id):
