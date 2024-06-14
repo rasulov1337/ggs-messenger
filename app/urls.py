@@ -1,6 +1,9 @@
 from django.urls import path
 
 from . import views
+from msgr import settings
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+
 
 urlpatterns = [
     path('auth/login', views.login, name='login'),
@@ -15,7 +18,10 @@ urlpatterns = [
 
     path('profiles/self', views.SelfProfileView.as_view(), name='self-profile'),
     path('profiles/<int:profile_id>', views.get_profile_info, name='get-profile-info'),
-  
+
     path('', views.index, name="index"),
 
 ]
+
+
+urlpatterns += staticfiles_urlpatterns()  # Works only in development mode

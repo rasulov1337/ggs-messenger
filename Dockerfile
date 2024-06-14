@@ -29,7 +29,5 @@ EXPOSE 8000 8010
 
 
 
-
-
 # Команда для запуска приложения
 #CMD ["gunicorn", "-c", "configs/gunicorn.conf.py", "msgr.wsgi"]
