@@ -27,10 +27,10 @@ EXPOSE 8000 8010
 
 RUN python manage.py migrate
 
-RUN export DJANGO_SUPERUSER_EMAIL=admin@example.com
+RUN export DJANGO_SUPERUSER_EMAIL=admin@admin.com
 RUN export DJANGO_SUPERUSER_USERNAME=admin
 RUN export DJANGO_SUPERUSER_PASSWORD=admin
-RUN python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL
+RUN python manage.py createsuperuser --noinput --username admin --email admin@admin.com
 
 # Команда для запуска приложения
 #CMD ["gunicorn", "-c", "configs/gunicorn.conf.py", "msgr.wsgi"]
