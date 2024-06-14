@@ -275,8 +275,18 @@ class MessageDetailView(View):
         except json.JSONDecodeError or KeyError:
             return JsonResponse({'error': 'Bad Request'}, status=400)
 
-    return JsonResponse({'status': 'ok'}, status=200)
+        return JsonResponse({'status': 'ok'}, status=200)
 
+
+def get_profile_info(request, profile_id):
+    profile = Profile.objects.get(id=profile_id)
+    if not profile:
+        return JsonResponse({'error': 'Profile does not exist'}, status=400)
+    return JsonResponse({'username': profile.user.username,
+                         'name': profile.name,
+                         'bio': profile.bio,
+                         'last_active': profile.last_active
+                         }, status=200)
 
 class SelfProfileView(View):
     model = Profile
