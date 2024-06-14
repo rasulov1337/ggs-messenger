@@ -20,19 +20,16 @@ RUN pip install -r /app/requirements.txt
 WORKDIR /app
 
 # Копируем файлы проекта в контейнер
-COPY . /app
+COPY . /app/
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT [ "bash", "/app/entrypoint.sh" ]
 
 # Открываем порты
 EXPOSE 8000 8010
 
-RUN python manage.py migrate --noinput
 
-RUN export DJANGO_SUPERUSER_EMAIL=admin@admin.com
-RUN export DJANGO_SUPERUSER_USERNAME=admin
-RUN export DJANGO_SUPERUSER_PASSWORD=admin
-RUN python manage.py createsuperuser --noinput --username admin --email admin@admin.com
+
+
 
 # Команда для запуска приложения
 #CMD ["gunicorn", "-c", "configs/gunicorn.conf.py", "msgr.wsgi"]
-# RUN centrifugo --config=configs/centrifugo.json
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

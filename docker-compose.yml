@@ -3,10 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command:
-      - /bin/sh
-      - '-c'
-      - '/app/entrypoint.sh'
 
     volumes:
       - .:/app
