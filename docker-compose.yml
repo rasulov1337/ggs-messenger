@@ -6,7 +6,7 @@ services:
     command:
       - /bin/sh
       - '-c'
-      - '/app/entrypoint.sh'
+      - './entrypoint.sh'
 
     volumes:
       - .:/app
