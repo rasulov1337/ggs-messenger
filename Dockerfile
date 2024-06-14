@@ -9,9 +9,6 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем Centrifugo
-RUN curl -L https://github.com/centrifugal/centrifugo/releases/download/v3.0.0/centrifugo_3.0.0_linux_amd64.tar.gz | tar xz -C /usr/local/bin
-
 # Устанавливаем и обновляем pip
 RUN pip install --upgrade pip
 
@@ -28,7 +25,9 @@ COPY . /app
 # Открываем порты
 EXPOSE 8000 8010
 
+RUN python manage.py migrate
+
 # Команда для запуска приложения
 #CMD ["gunicorn", "-c", "configs/gunicorn.conf.py", "msgr.wsgi"]
-# RUN centrifugo --config=configs/centrifugo.json 
+# RUN centrifugo --config=configs/centrifugo.json
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
