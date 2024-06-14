@@ -26,6 +26,7 @@ COPY . /app
 EXPOSE 8000 8010
 
 RUN python manage.py migrate
+RUN python manage.py createsuperuser --noinput --email admin@admin.com --username admin --password admin
 
 # Команда для запуска приложения
 #CMD ["gunicorn", "-c", "configs/gunicorn.conf.py", "msgr.wsgi"]
