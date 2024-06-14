@@ -25,7 +25,7 @@ COPY . /app
 # Открываем порты
 EXPOSE 8000 8010
 
-RUN python manage.py migrate
+RUN python manage.py migrate --noinput
 
 RUN export DJANGO_SUPERUSER_EMAIL=admin@admin.com
 RUN export DJANGO_SUPERUSER_USERNAME=admin
