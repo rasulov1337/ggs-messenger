@@ -2,3 +2,4 @@ django
 pyjwt
 cent
 gunicorn
+django-cors-headers
