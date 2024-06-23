@@ -57,7 +57,7 @@ def register(request):
 
         if user:
             auth.login(request, user)
-            return JsonResponse({'status': 'ok'}, status=400)
+            return JsonResponse({'status': 'ok'}, status=200)
         else:
             return JsonResponse({'error': 'User saving error'}, status=400)
 
