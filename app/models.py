@@ -17,12 +17,12 @@ class Profile(models.Model):
 
 
 class ChatManager(models.Manager):
-    def get_chats_of_user(self, user_id, query):
+    def get_chats_of_user(self, user_id):
         profile = Profile.objects.get(user_id=user_id)
         return Chat.objects.filter(chatparticipant__profile=profile).order_by('-created_at')
 
     def search_chats_of_user(self, user_id, query):
-        chats = self.get_chats_of_user(user_id, query).filter(text__icontains=query)
+        chats = self.get_chats_of_user(user_id).filter(text__icontains=query)
         return {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
 
 

@@ -81,6 +81,9 @@ class ChatListView(View):
     model = Chat
 
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'error': 'User is not authenticated'}, status=400)
+
         if request.method == 'GET':
             if request.GET.get('search', None) is not None:
                 return self.search_chats(request)
@@ -180,9 +183,8 @@ class MessageListView(View):
             body = json.loads(request.body)
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-            ws_channel_name = 'chat_' + str(body['chatId'])
             publist_request = PublishRequest(
-                channel=ws_channel_name,
+                channel=str(body['chatId']),
                 data={
                     'type': 'send_message',
                     'data': {
@@ -224,9 +226,8 @@ class MessageDetailView(View):
             body = json.loads(request.body)
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-            ws_channel_name = 'chat_' + str(body['chatId'])
             request = PublishRequest(
-                channel=ws_channel_name,
+                channel=str(body['chatId']),
                 data={
                     'type': 'edit_message',
                     'data': {
@@ -261,9 +262,8 @@ class MessageDetailView(View):
             api_key = settings.CENTRIFUGO_API_KEY
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-            ws_channel_name = 'chat_' + str(body['chatId'])
             request = PublishRequest(
-                channel=ws_channel_name,
+                channel=str(body['chatId']),
                 data={
                     'type': 'delete_message',
                     'data': {
