@@ -5,6 +5,7 @@ import jwt  # Token generation
 
 from cent import Client, PublishRequest  # Centrifugo
 from django.contrib import auth
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views import View
@@ -88,7 +89,6 @@ class ChatListView(View):
             return self.create_chat(request)
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-
     def get_chat_list(self, request):
         chats = Chat.objects.get_chats_of_user(request.user.id)
         data = {'chats': [{'id': chat.id, 'name': chat.name} for chat in chats]}
@@ -162,7 +162,6 @@ class MessageListView(View):
             return self.send_message(request)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
-
     def search_messages_in_chat(self, request, chat_id):
         query = request.GET.get('q', None)
         if query is None:
@@ -195,8 +194,8 @@ class MessageListView(View):
 
             # Save the message to the database
             msg = Message.objects.create(chat=Chat.objects.get(pk=int(body['chatId'])),
-                                        profile=request.user.profile,
-                                        text=body['text'])
+                                         profile=request.user.profile,
+                                         text=body['text'])
             msg.save()
         except json.JSONDecodeError or KeyError:
             return JsonResponse({'error': 'Bad Request'}, status=400)
@@ -288,19 +287,24 @@ def get_profile_info(request, profile_id):
                          'last_active': profile.last_active
                          }, status=200)
 
+
 class SelfProfileView(View):
     model = Profile
 
-    def get(self, request):
+    def get(self, request, chat_id: int):
+        # Получить список участников чата
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
         profile = request.user.profile
-        return JsonResponse({'username': profile.user.username,
-                             'name': profile.name,
-                             'bio': profile.bio,
-                             'last_active': profile.last_active
-                             }, status=200)
+        return JsonResponse(
+            {'response':
+                 {'username': profile.user.username,
+                  'name': profile.name,
+                  'bio': profile.bio,
+                  'last_active': profile.last_active
+                  }
+             }, status=200)
 
     def post(self, request):
         if not request.user.is_authenticated:
@@ -328,4 +332,45 @@ class SelfProfileView(View):
 
         request.user.profile.delete()
         request.user.delete()
+        return JsonResponse({'status': 'ok'}, status=200)
+
+
+class ChatMemberView(View):
+    model = Profile
+
+    # TODO: ДОБАВИТЬ ПРОВЕРКУ НА АВТОРСТВА ГРУППОЙ
+    # ПОКА ПОХУЙ ПОТОМУ ЧТО ВРЕМЕНИ МАЛО
+
+    def get(self, request, chat_id: int):  # Returns all chat members
+        members = ChatParticipant.objects.filter(chat_id=chat_id)
+        response = [
+            {'name': i.profile.name,
+             'username': i.profile.user.username,
+             'id': i.profile.id,
+             } for i in members
+        ]
+        return JsonResponse({'members': response}, status=200)
+
+    def post(self, request, chat_id):  # Add users to a chat
+        chat = get_object_or_404(Chat, id=chat_id)
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError or KeyError:
+            return JsonResponse({'error': 'Bad Request'}, status=400)
+
+        profiles_to_add = [get_object_or_404(Profile, user__username=username) for username in body.get('members')]
+        for profile in profiles_to_add:
+            try:
+                ChatParticipant.objects.create(chat=chat, profile=profile).save()
+            except IntegrityError:
+                return JsonResponse({'error': 'User already exists'}, status=400)
+
+        return JsonResponse({'status': 'ok'}, status=200)
+
+    def delete(self, request, chat_id):  # Deletes user from chat
+        chat = get_object_or_404(Chat, id=chat_id)
+        try:
+            ChatParticipant.objects.get(chat=chat, profile__user__username=request.GET.get('username')).delete()
+        except ChatParticipant.DoesNotExist:
+            return JsonResponse({'error': 'User does not belong to the chat'}, status=400)
         return JsonResponse({'status': 'ok'}, status=200)

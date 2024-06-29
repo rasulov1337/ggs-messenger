@@ -44,6 +44,9 @@ class ChatParticipant(models.Model):
     def __str__(self):
         return self.profile.user.username
 
+    class Meta:
+        unique_together = (('chat', 'profile'),)
+
 
 class MessageManager(models.Manager):
     def get_messages_of_chat(self, chat_id):
