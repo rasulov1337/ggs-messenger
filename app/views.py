@@ -104,19 +104,19 @@ class ChatListView(View):
         try:
             data = json.loads(request.body)
             chat_name = data.get('name')
-            user_ids = data.get('user_ids', [])
+            usernames = data.get('members', [])
 
-            if not chat_name or not user_ids:
-                return JsonResponse({'error': 'Missing chat name or user ids.'}, status=400)
+            if not chat_name or not usernames:
+                return JsonResponse({'error': 'Missing chat name or usernames.'}, status=400)
 
             chat = Chat.objects.create(name=chat_name)
 
-            for user_id in user_ids:
+            for username in usernames:
                 try:
-                    profile = Profile.objects.get(user_id=user_id)
+                    profile = Profile.objects.get(user__username=username)
                     ChatParticipant.objects.create(chat=chat, profile=profile)
                 except Profile.DoesNotExist:
-                    return JsonResponse({'error': f'Profile with user_id {user_id} does not exist.'}, status=400)
+                    return JsonResponse({'error': f'Profile with username {username} does not exist.'}, status=400)
 
             return JsonResponse({'id': chat.id, 'name': chat.name}, status=201)
 
