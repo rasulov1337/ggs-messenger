@@ -192,7 +192,7 @@ class MessageListView(View):
                     'type': 'send_message',
                     'data': {
                         'text': body['text'],
-                        'senderId': request.user.id,
+                        'senderId': str(request.user.id),
                     }
                 })
             client.publish(publish_request)
