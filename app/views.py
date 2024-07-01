@@ -288,6 +288,15 @@ def get_profile_info(request, profile_id):
                          }, status=200)
 
 
+def search_profile(request):
+    query = request.GET.get('q', None)
+    if query is None:
+        return JsonResponse({'result': []})
+    profiles = Profile.objects.filter(user__username__icontains=query).order_by('user__username')
+    return JsonResponse(
+        {'profiles': [{'username': profile.user.username, 'name': profile.name} for profile in profiles]})
+
+
 class SelfProfileView(View):
     model = Profile
 

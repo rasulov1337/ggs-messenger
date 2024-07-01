@@ -19,7 +19,7 @@ urlpatterns = [
 
     path('profiles/self', views.SelfProfileView.as_view(), name='self-profile'),
     path('profiles/<int:profile_id>', views.get_profile_info, name='get-profile-info'),
-
+    path('profiles/search', views.search_profile, name='search-profile'),
     path('', views.index, name="index"),
 
 ]
