@@ -291,20 +291,21 @@ def get_profile_info(request, profile_id):
 class SelfProfileView(View):
     model = Profile
 
-    def get(self, request, chat_id: int):
+    def get(self, request):
         # Получить список участников чата
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
         profile = request.user.profile
         return JsonResponse(
-            {'response':
-                 {'username': profile.user.username,
-                  'name': profile.name,
-                  'bio': profile.bio,
-                  'last_active': profile.last_active
-                  }
-             }, status=200)
+            {
+                'response':
+                    {'username': profile.user.username,
+                     'name': profile.name,
+                     'bio': profile.bio,
+                     'last_active': profile.last_active
+                     }
+            }, status=200)
 
     def post(self, request):
         if not request.user.is_authenticated:
