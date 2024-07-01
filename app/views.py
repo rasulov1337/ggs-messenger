@@ -188,7 +188,7 @@ class MessageListView(View):
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
             publish_request = PublishRequest(
-                channel=chat_id,
+                channel=str(chat_id),
                 data={
                     'type': 'send_message',
                     'data': {
@@ -235,7 +235,7 @@ class MessageDetailView(View):
                 data={
                     'type': 'edit_message',
                     'data': {
-                        'messageId': message_id,
+                        'messageId': str(message_id),
                         'text': body['text'],
                     }
                 })
@@ -271,7 +271,7 @@ class MessageDetailView(View):
                 data={
                     'type': 'delete_message',
                     'data': {
-                        'messageId': message_id
+                        'messageId': str(message_id)
                     }
                 })
             client.publish(request)
