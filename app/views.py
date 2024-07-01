@@ -160,10 +160,11 @@ class MessageListView(View):
     model = Message
 
     def dispatch(self, request, *args, **kwargs):
+        chat_id = kwargs.get('chat_id')
         if request.method == 'GET':
-            return self.search_messages_in_chat(request, *args)
+            return self.search_messages_in_chat(request, chat_id)
         elif request.method == 'POST':
-            return self.send_message(request)
+            return self.send_message(request, chat_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
     def search_messages_in_chat(self, request, chat_id):
@@ -173,7 +174,7 @@ class MessageListView(View):
 
         return JsonResponse(Message.objects.search_messages_in_chat(chat_id, query))
 
-    def send_message(self, request):
+    def send_message(self, request, chat_id: str):
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
@@ -184,8 +185,8 @@ class MessageListView(View):
             body = json.loads(request.body)
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-            publist_request = PublishRequest(
-                channel=str(body['chatId']),
+            publish_request = PublishRequest(
+                channel=chat_id,
                 data={
                     'type': 'send_message',
                     'data': {
@@ -193,10 +194,10 @@ class MessageListView(View):
                         'senderId': request.user.id,
                     }
                 })
-            client.publish(publist_request)
+            client.publish(publish_request)
 
             # Save the message to the database
-            msg = Message.objects.create(chat=Chat.objects.get(pk=int(body['chatId'])),
+            msg = Message.objects.create(chat=Chat.objects.get(pk=int(chat_id)),
                                          profile=request.user.profile,
                                          text=body['text'])
             msg.save()
