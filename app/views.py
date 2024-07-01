@@ -131,10 +131,11 @@ class ChatDetailView(View):
     model = Chat
 
     def dispatch(self, request, *args, **kwargs):
+        chat_id = kwargs.get('chat_id')
         if request.method == 'GET':
-            return self.get_chat_messages(request, *args)
+            return self.get_chat_messages(request, chat_id)
         elif request.method == 'DELETE':
-            return self.delete_chat(request, *args)
+            return self.delete_chat(request, chat_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
     def get_chat_messages(self, request, chat_id):
