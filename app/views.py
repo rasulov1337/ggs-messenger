@@ -112,7 +112,8 @@ class ChatListView(View):
             if not chat_name or not usernames:
                 return JsonResponse({'error': 'Missing chat name or usernames.'}, status=400)
 
-            chat = Chat.objects.create(name=chat_name).save()
+            chat = Chat.objects.create(name=chat_name)
+            chat.save()
             ChatParticipant.objects.create(chat=chat, profile=request.user.profile).save()
 
             for username in usernames:
