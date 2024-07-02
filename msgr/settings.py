@@ -25,7 +25,9 @@ SECRET_KEY = 'django-insecure-n84o(urdopv^p^aj+t5v3=0#z#1trf8*0z-oa_384j+pr)1*$2
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'ggs-messenger.onrender.com'
+]
 
 
 # Application definition
