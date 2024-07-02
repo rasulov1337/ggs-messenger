@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 from django.views.decorators.http import (
-    require_GET, require_http_methods, require_POST,
+    require_GET, require_POST,
 )
 
 from app.forms import LoginForm, RegisterForm
@@ -31,10 +31,6 @@ def get_centrifugo_token(request):
         'token': token,
         'url': ws_url
     })
-
-
-def index(request):
-    return render(request, '/app/test.html')
 
 
 @require_POST
