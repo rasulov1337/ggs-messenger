@@ -129,22 +129,22 @@ class ChatDetailView(View):
     model = Chat
 
     def dispatch(self, request, *args, **kwargs):
-        chat_id = kwargs.get('chat_id')
+        chat_id: str = kwargs.get('chat_id')
         if request.method == 'GET':
             return self.get_chat_messages(request, chat_id)
         elif request.method == 'DELETE':
             return self.delete_chat(request, chat_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
-    def get_chat_messages(self, request, chat_id):
-        messages = Message.objects.get_messages_of_chat(chat_id)
+    def get_chat_messages(self, request, chat_id: str):
+        messages = Message.objects.get_messages_of_chat(int(chat_id))
         data = {'chats': [{'id': message.id, 'text': message.text} for message in messages]}
         return JsonResponse(data)
 
-    def delete_chat(self, request, chat_id):
+    def delete_chat(self, request, chat_id: str):
         profile = get_object_or_404(Profile, user=request.user)
 
-        chat = get_object_or_404(Chat, id=chat_id)
+        chat = get_object_or_404(Chat, id=int(chat_id))
         participant = ChatParticipant.objects.filter(chat=chat, profile=profile, has_admin_rights=True).first()
 
         if not participant:
@@ -158,19 +158,19 @@ class MessageListView(View):
     model = Message
 
     def dispatch(self, request, *args, **kwargs):
-        chat_id = kwargs.get('chat_id')
+        chat_id: str = kwargs.get('chat_id')
         if request.method == 'GET':
             return self.search_messages_in_chat(request, chat_id)
         elif request.method == 'POST':
             return self.send_message(request, chat_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
-    def search_messages_in_chat(self, request, chat_id):
+    def search_messages_in_chat(self, request, chat_id: str):
         query = request.GET.get('q', None)
         if query is None:
             return JsonResponse({'result': []})
 
-        return JsonResponse(Message.objects.search_messages_in_chat(chat_id, query))
+        return JsonResponse(Message.objects.search_messages_in_chat(int(chat_id), query))
 
     def send_message(self, request, chat_id: str):
         if not request.user.is_authenticated:
@@ -184,7 +184,7 @@ class MessageListView(View):
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
             publish_request = PublishRequest(
-                channel=str(chat_id),
+                channel=chat_id,
                 data={
                     'type': 'send_message',
                     'data': {
@@ -209,14 +209,15 @@ class MessageDetailView(View):
     model = Message
 
     def dispatch(self, request, *args, **kwargs):
-        message_id = kwargs.get('message_id')
+        chat_id: str = kwargs.get('chat_id')
+        message_id: str = kwargs.get('message_id')
         if request.method == 'DELETE':
-            return self.delete_message(request, message_id)
+            return self.delete_message(request, chat_id, message_id)
         elif request.method == 'PATCH':
-            return self.edit_message(request, message_id)
+            return self.edit_message(request, chat_id, message_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
-    def edit_message(self, request, message_id: int) -> JsonResponse:
+    def edit_message(self, request, chat_id: str, message_id: str) -> JsonResponse:
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
@@ -228,23 +229,23 @@ class MessageDetailView(View):
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
             request = PublishRequest(
-                channel=str(body['chatId']),
+                channel=chat_id,
                 data={
                     'type': 'edit_message',
                     'data': {
-                        'messageId': str(message_id),
+                        'messageId': message_id,
                         'text': body['text'],
                     }
                 })
             client.publish(request)
 
             # Update the message
-            Message.objects.filter(pk=message_id).update(text=body['text'])
+            Message.objects.filter(pk=int(message_id)).update(text=body['text'])
         except json.JSONDecodeError or KeyError:
             return JsonResponse({'error': 'Bad Request'}, status=400)
         return JsonResponse({'status': 'ok'}, status=200)
 
-    def delete_message(self, request, message_id: int) -> JsonResponse:
+    def delete_message(self, request, chat_id: str, message_id: str) -> JsonResponse:
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
@@ -252,7 +253,7 @@ class MessageDetailView(View):
             body = json.loads(request.body)
 
             # Delete the message from the database
-            msg = Message.objects.filter(pk=message_id)
+            msg = Message.objects.filter(pk=int(message_id))
             if not msg.exists():
                 return JsonResponse({'error': 'Message does not exist'}, status=400)
 
@@ -264,11 +265,11 @@ class MessageDetailView(View):
 
             client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
             request = PublishRequest(
-                channel=str(body['chatId']),
+                channel=chat_id,
                 data={
                     'type': 'delete_message',
                     'data': {
-                        'messageId': str(message_id)
+                        'messageId': message_id
                     }
                 })
             client.publish(request)

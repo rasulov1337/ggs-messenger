@@ -49,10 +49,10 @@ class ChatParticipant(models.Model):
 
 
 class MessageManager(models.Manager):
-    def get_messages_of_chat(self, chat_id):
+    def get_messages_of_chat(self, chat_id: int):
         return Message.objects.filter(chat__id=chat_id).order_by('-sent_at')
 
-    def search_messages_in_chat(self, chat_id, query):
+    def search_messages_in_chat(self, chat_id: int, query):
         messages = self.get_messages_of_chat(chat_id).filter(text__icontains=query)[:50]
         result = {'messages': [{'id': message.id, 'text': message.text} for message in messages]}
         return result
