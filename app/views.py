@@ -250,7 +250,6 @@ class MessageDetailView(View):
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
         try:
-            body = json.loads(request.body)
 
             # Delete the message from the database
             msg = Message.objects.filter(pk=int(message_id))
