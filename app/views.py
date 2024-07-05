@@ -209,10 +209,11 @@ class MessageDetailView(View):
     model = Message
 
     def dispatch(self, request, *args, **kwargs):
+        message_id = kwargs.get('message_id')
         if request.method == 'DELETE':
-            return self.delete_message(request, *args)
+            return self.delete_message(request, message_id)
         elif request.method == 'PATCH':
-            return self.edit_message(request, *args)
+            return self.edit_message(request, message_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
     def edit_message(self, request, message_id: int) -> JsonResponse:
