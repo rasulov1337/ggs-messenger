@@ -188,9 +188,9 @@ class MessageListView(View):
                 data={
                     'type': 'send_message',
                     'data': {
-                        'text': body['text'],
-                        'senderId': str(request.user.id),
-                    }
+                        'text': body['text']
+                    },
+                    'senderName': str(request.user.profile.name)
                 })
             client.publish(publish_request)
 
@@ -235,7 +235,8 @@ class MessageDetailView(View):
                     'data': {
                         'messageId': message_id,
                         'text': body['text'],
-                    }
+                    },
+                    'senderName': str(request.user.profile.name)
                 })
             client.publish(request)
 
@@ -250,7 +251,6 @@ class MessageDetailView(View):
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
         try:
-            body = json.loads(request.body)
 
             # Delete the message from the database
             msg = Message.objects.filter(pk=int(message_id))
@@ -270,7 +270,8 @@ class MessageDetailView(View):
                     'type': 'delete_message',
                     'data': {
                         'messageId': message_id
-                    }
+                    },
+                    'senderName': str(request.user.profile.name)
                 })
             client.publish(request)
         except json.JSONDecodeError or KeyError:
