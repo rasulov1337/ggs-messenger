@@ -246,38 +246,42 @@ class MessageDetailView(View):
             return JsonResponse({'error': 'Bad Request'}, status=400)
         return JsonResponse({'status': 'ok'}, status=200)
 
-    def delete_message(self, request, message_id: int) -> JsonResponse:
+    def delete_message(self, request, message_id):
         if not request.user.is_authenticated:
             return JsonResponse({'error': 'User is not authenticated'}, status=400)
 
         try:
             body = json.loads(request.body)
+            chat_id = body.get('chatId')
 
-            # Delete the message from the database
-            msg = Message.objects.filter(pk=message_id)
-            if not msg.exists():
-                return JsonResponse({'error': 'Message does not exist'}, status=400)
+            if not chat_id:
+                return JsonResponse({'error': 'Bad Request'}, status=400)
 
+            # Удаление сообщения из базы данных
+            msg = get_object_or_404(Message, pk=message_id)
             msg.delete()
 
-            # Send a message to Centrifugo to delete the message from the chat
-            api_url = settings.CENTRIFUGO_API_URL
-            api_key = settings.CENTRIFUGO_API_KEY
+            # Отправка сообщения в Centrifugo для удаления сообщения из чата
+            self.send_centrifugo_message(chat_id, 'delete_message', {'messageId': message_id})
 
-            client = Client(api_url, api_key)  # TODO: Возможно не стоит каждый раз создавать клиент
-            request = PublishRequest(
-                channel=str(body['chatId']),
-                data={
-                    'type': 'delete_message',
-                    'data': {
-                        'messageId': message_id
-                    }
-                })
-            client.publish(request)
-        except json.JSONDecodeError or KeyError:
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        except KeyError:
             return JsonResponse({'error': 'Bad Request'}, status=400)
 
         return JsonResponse({'status': 'ok'}, status=200)
+
+    def send_centrifugo_message(self, chat_id, message_type, data):
+        api_url = settings.CENTRIFUGO_API_URL
+        api_key = settings.CENTRIFUGO_API_KEY
+        client = Client(api_url, api_key)
+        request = PublishRequest(
+            channel=str(chat_id),
+            data={
+                'type': message_type,
+                'data': data
+            })
+        client.publish(request)
 
 
 def get_profile_info(request, profile_id):
