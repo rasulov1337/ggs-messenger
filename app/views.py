@@ -160,8 +160,9 @@ class MessageListView(View):
     model = Message
 
     def dispatch(self, request, *args, **kwargs):
+        chat_id = kwargs.get('chat_id')
         if request.method == 'GET':
-            return self.search_messages_in_chat(request, *args)
+            return self.search_messages_in_chat(request, chat_id)
         elif request.method == 'POST':
             return self.send_message(request)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
@@ -210,10 +211,11 @@ class MessageDetailView(View):
     model = Message
 
     def dispatch(self, request, *args, **kwargs):
+        message_id = kwargs.get('message_id')
         if request.method == 'DELETE':
-            return self.delete_message(request, *args)
+            return self.delete_message(request, message_id)
         elif request.method == 'PATCH':
-            return self.edit_message(request, *args)
+            return self.edit_message(request, message_id)
         return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
     def edit_message(self, request, message_id: int) -> JsonResponse:
