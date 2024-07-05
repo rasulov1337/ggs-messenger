@@ -6,6 +6,7 @@
   "port": 8010,
   "admin": true,
   "allowed_origins": [
+    "*",
     "http://localhost",
     "http://localhost:8000",
     "http://127.0.0.1",
