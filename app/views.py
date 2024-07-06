@@ -138,7 +138,13 @@ class ChatDetailView(View):
 
     def get_chat_messages(self, request, chat_id: str):
         messages = Message.objects.get_messages_of_chat(int(chat_id))
-        data = {'chats': [{'id': message.id, 'text': message.text} for message in messages]}
+        data = {
+            'chats': [
+                {
+                    'id': message.id,
+                    'text': message.text,
+                    'senderName': message.profile.name
+                } for message in messages]}
         return JsonResponse(data)
 
     def delete_chat(self, request, chat_id: str):
