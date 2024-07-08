@@ -126,6 +126,7 @@ STATIC_ROOT = BASE_DIR / 'static/'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "*"
 ]
 
 # Default primary key field type
