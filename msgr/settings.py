@@ -126,7 +126,7 @@ STATIC_ROOT = BASE_DIR / 'static/'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "*"
+    "https://chipper-cassata-e608b5.netlify.app/"
 ]
 
 # Default primary key field type
